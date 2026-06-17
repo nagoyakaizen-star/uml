@@ -3,13 +3,21 @@
 start
 
 if (multimedia?) then (yes)
+
   fork
+  
     :audio ;
+ 
   fork again
+  
     :video ;
+  
   end fork
+
 else (monoproc)
+
   : No action;
+
 endif
 
 @enduml
