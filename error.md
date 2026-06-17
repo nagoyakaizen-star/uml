@@ -3,30 +3,55 @@
 start
 
 if (multimedia?) then (yes)
+
   fork
+
     :audio ;
-　　if (subtitle?) then (yes)
+
+  if (subtitle?) then (yes)
+  
       fork
-　　　  :transcript:
+　　　 
+     :transcript:
+     
          if ( translate?) then (yes)
+         
             fork
+            
              : Japanese:
+             
              : Chinese:
+             
              : English:
+             
              : Spanish:
+             
              endfork       
+           
            else (no)
+           
              : original:
+           
            endif
+        
         endfork
+     
      else (no)
+     
      : No action:
+     
      endif
+  
   fork again
+  
     :video ;
+  
   end fork
+
 else (no)
+
   : No action;
+
 endif
 
 @enduml
