@@ -291,6 +291,7 @@ json JSON {
 <img width="264" height="370" alt="image" src="https://github.com/user-attachments/assets/6e1c4a13-d3e9-4057-8b3a-b44f959f80a2" />
 
 
+# Molule, component, package
 https://www.omg.org/spec/UML/2.5.1
 11.8.6 Component [Class]
 12 Packages
