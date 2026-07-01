@@ -140,3 +140,25 @@ json JSON {
 
 <img width="186" height="221" alt="image" src="https://github.com/user-attachments/assets/fddaa466-b03d-40aa-b886-0bcd23c38e78" />
 
+
+```plantuml
+@startuml
+
+package Package{
+
+component Component{
+
+json JSON {
+   "fruit":"Apple",
+   "size":"Large",
+   "color": ["Red", "Green"]
+   }
+}
+
+}
+
+
+@enduml
+```
+
+<img width="229" height="282" alt="image" src="https://github.com/user-attachments/assets/b2033560-ff91-4147-bd61-9540a6806307" />
