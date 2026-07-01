@@ -263,3 +263,30 @@ IO_API - IO
 👉 **パターン2** が最適です。ファイルそのものよりも「境界線（インターフェース）」に注目した図になります。
 
 PlantUMLはテキストで関係性を書くだけで Graphviz が自動的に綺麗に配置（レイアウト）してくれるため、モジュールの数が多くなっても手軽に修正できて便利です。
+
+```plantuml
+@startuml
+
+package Package{
+
+component Component{
+
+component Module {
+
+json JSON {
+   "fruit":"Apple",
+   "size":"Large",
+   "color": ["Red", "Green"]
+   }
+}
+
+}
+
+}
+
+
+@enduml
+```
+
+<img width="264" height="370" alt="image" src="https://github.com/user-attachments/assets/6e1c4a13-d3e9-4057-8b3a-b44f959f80a2" />
+
