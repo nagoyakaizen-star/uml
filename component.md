@@ -118,3 +118,25 @@ UML（統一モデリング言語）において、**パッケージ**、**コ�
 * **モジュール：** 実際に作成した `main.c` や `driver.asm` といった、**個々のソースファイルそのもの**。
 
 設計するときは「パッケージ」で大枠を整理し、システムの構造を考えるときは「コンポーネント」の繋がり（Graphvizで描くようなコールグラフ等）を意識し、実際にコードを書くときは「モジュール」単位でファイルを作る、というように視点を切り替えて使い分けます。
+
+# plantuml
+
+```plantuml
+@startuml
+allowmixing
+
+component Component{
+
+json JSON {
+   "fruit":"Apple",
+   "size":"Large",
+   "color": ["Red", "Green"]
+   }
+}
+
+
+@enduml
+```
+
+<img width="186" height="221" alt="image" src="https://github.com/user-attachments/assets/fddaa466-b03d-40aa-b886-0bcd23c38e78" />
+
