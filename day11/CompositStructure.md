@@ -229,6 +229,8 @@ Router -[#red,dashed]- Tab2 : Wi-Fi
 * **ボトルネックの可視化:** 中心にある `Router` を赤色（`#LightPink`）にし、1台に対してPC3台、スマホ5台、タブレット2台の計10台が1つの無線帯域に群がっている「過密状態」を表現しています。
 * **通信線の表現:** 正常なネットワークであれば青の実線などで引きますが、今回は通信環境が不安定というトラブル状況を表現するため、すべての接続線を赤の点線（`-[#red,dashed]-`）にしています。
 
+<img width="639" height="207" alt="image" src="https://github.com/user-attachments/assets/f13c4993-f4e1-45df-92ef-a8a800e6d97e" />
+
 
 # 合成構造図
 ## Q1 PlantUMLで合成構造図を書くにはどうしたらいいですか。
