@@ -106,6 +106,62 @@ PowerSource -[#red,dashed]- ClientPC : AC 100V / バッテリー\n[電源線]
 <img width="564" height="589" alt="image" src="https://github.com/user-attachments/assets/eb0d91de-4b96-40c3-a8c6-7d325adddd8d" />
 
 
+## Q3 UMLの配置図って、ソフトウェアで書くとすると、どういう場合がありますか。８つ示してください。実例があれば、Wikipedia以外のURLを示してください。
+A3
+UMLの配置図（Deployment Diagram）は、ソフトウェア工学において「成果物（プログラム、ファイル、DBなど）」が、「どの物理ハードウェアや仮想的な実行環境（OS、コンテナ、サーバーなど）上で、どのように配置されて動くのか」という、インフラとソフトウェアの物理的なトポロジー（関係性）を設計・可視化するときに使われます。
+
+ソフトウェア開発において、配置図が具体的にどのようなケースで書かれるのか、実例の参照URLとともに8つのシチュエーションを示します。
+
+---
+
+### 1. マイクロサービス・Webシステムの多層（マルチティア）アーキテクチャ設計
+
+最も一般的なケースです。Webブラウザ（クライアントノード）、APIゲートウェイ、複数のマイクロサービス（コンテナノード）、およびバックエンドデータベースが、それぞれどのサーバーやネットワークセグメント（DMZ、プライベートLAN）に配置され、HTTPやgRPCでどう通信するかをマッピングします。
+
+* **実例・解説リンク（Software Ideas Modeler）:** [E-commerce Microservices (UML Deployment Diagram)](https://www.google.com/search?q=https://www.softwareideas.net/a/1580/e-commerce-microservices-uml-diagram-)
+
+### 2. オンプレミスからクラウド（AWS/Azure/GCP）への移行プラン策定
+
+レガシーな自社サーバー（オンプレミス環境）で動いていたシステムを、AWSなどのパブリッククラウドへ移行する際、既存の物理トポロジーがクラウド上の仮想ノード（VPC、EC2、RDSなど）にどうマッピングされるかを新旧で比較・定義するために作成されます。
+
+* **実例・解説リンク（Architect View Master）:** [Deployment Diagrams: The C4 Way to Stop Confusing Everyone](https://www.architectviewmaster.com/blog/deployment-diagrams-the-c4-way-to-stop-confusing-everyone/)
+
+### 3. モバイルアプリ（iOS/Android）とバックエンドAPIの協調設計
+
+スマートフォンという「端末デバイスノード（Android/iOS）」のローカル環境（内部のSQLite DBや、アプリ本体の成果物）が、インターネット経由で「金融系システムや認証サーバー（Linuxノード）」とどのようにセキュアに通信するかという境界線を描く場合に使われます。
+
+* **実例・解説リンク（GeeksforGeeks）:** [Deployment Diagram for Mobile Banking Android Services](https://www.geeksforgeeks.org/system-design/deployment-diagram-unified-modeling-languageuml/)
+
+### 4. 組み込みシステム・IoT（Edge-to-Cloud）のトポロジー設計
+
+スマート家電、自動車のECU、工場内のセンサーなどの「物理デバイス（エッジノード）」と、それらを束ねる「ゲートウェイ機器」、そしてデータを吸い上げる「クラウド基盤」の間の三層構造を定義します。ハードウェアの制約と、ソフトウェアの配置場所を同時に表現できる配置図の強みが活きる分野です。
+
+* **実例・解説リンク（Agile Modeling）:** [UML Deployment Diagrams: An Agile Introduction](https://agilemodeling.com/artifacts/deploymentdiagram.htm)
+
+### 5. 冗長化（ロードバランサ）と可用性・負荷分散の設計
+
+システムの可用性を高めるため、ロードバランサの配下に何台のアプリケーションサーバー（複製された同一ノード）を並べるか、データベースをマスタ・レプリカ構成（アクティブ・スタンバイ）にしてどの筐体に分散させるかといった、可用性（HA）設計に用いられます。
+
+* **実例・解説リンク（Lucidchart）:** [Deployment Diagram Tutorial and Examples](https://lucid.co/diagram/uml/deployment-diagram-tutorial)
+
+### 6. 企業内システムのインテグレーション・認証連携（SSO）
+
+大学の学務システムや、企業の基幹システム（ERP）などにおいて、既存の「Active Directory（認証サーバーノード）」と、新設する「業務アプリケーションサーバー」が、企業内ファイアウォールの前後でどのようにパケットを行き来させるかをセキュリティ観点で明示します。
+
+* **実例・解説リンク（Cybermedian）:** [UML Deployment Diagram for Modern System Architecture](https://www.cybermedian.com/a-comprehensive-case-study-on-ai-enhanced-uml-deployment-diagrams-for-modern-system-architecture/)
+
+### 7. DevOpsにおけるCI/CDパイプラインとデプロイ先環境の定義
+
+開発環境（Staging）と本番環境（Production）でノードの構成（ステージングは1台のVM、本番はKubernetesクラスターなど）が異なる場合、ビルドされた成果物（.warファイルやDockerイメージ）が、どの環境のどの実行コンテキストにデプロイされるかのプロセスを定義します。
+
+* **実例・解説リンク（InfraSketch）:** [Architecture Diagram Best Practices](https://infrasketch.net/blog/architecture-diagram-best-practices)
+
+### 8. 分散メッセージング・イベント駆動型システム（Kafka/RabbitMQ）の配置
+
+データ流量が非常に多いデータ分析基盤などで、メッセージブローカー（Apache Kafkaなどのクラスタノード）をどこに配置し、パブリッシャー（データ送信側）とサブスクライバー（データ受信・処理側）がどの物理サーバー群で分散処理を行うかを可視化するために記述されます。
+
+* **実例・解説リンク（Visual Paradigm）:** [Deployment Diagram for Microservices Architecture](https://chat.visual-paradigm.com/deployment-diagram-for-microservices-architecture-a-practical-overview/)
+
 ## manifest
 MakefileがCのソース
 Manifestは、ヘッダファイル
