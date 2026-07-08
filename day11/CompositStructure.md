@@ -321,6 +321,7 @@ WebApp --> DB : TCP/IP (Port 5432)
 @enduml
 
 ```
+<img width="343" height="647" alt="image" src="https://github.com/user-attachments/assets/d9bc9169-a9df-417a-8ae7-b96ad3d7159b" />
 
 ---
 
@@ -361,6 +362,7 @@ deactivate Client
 @enduml
 
 ```
+<img width="622" height="330" alt="image" src="https://github.com/user-attachments/assets/bdd237ee-96c8-4db1-ad4f-d500db562bfb" />
 
 # 合成構造図
 ## Q1 PlantUMLで合成構造図を書くにはどうしたらいいですか。
