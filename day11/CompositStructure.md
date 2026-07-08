@@ -166,6 +166,68 @@ UMLの配置図（Deployment Diagram）は、ソフトウェア工学におい�
 MakefileがCのソース
 Manifestは、ヘッダファイル
 
+## Q4 自宅で通信環境が不安定な場合の、PC、スマフォ、タブレットが１０台とルータがる例を、UMLの配置図で書いてみてください。
+A4 
+自宅の通信環境が不安定（Wi-Fiの電波干渉やルーターのセッション詰まりなど）で、合計10台の端末が1台のルーターに集中している超過密な状況を表現したUML配置図のPlantUMLコードです。
+
+Web版でも確実にエラーなくレンダリングできるよう、互換性の高い構文で記述しています。
+
+```plantuml
+@startuml
+title 自宅の通信不安定環境（10台の端末集中と電波干渉）
+
+' 共通スタイルの定義
+skinparam arrowThickness 1.5
+
+' ---- 物理ノードの定義 ----
+
+node "<<router>>\n自宅用無線LANルータ\n(接続限界・セッション過負荷)" as Router #LightPink
+
+package "5GHz / 2.4GHz Wi-Fi ネットワーク (電波干渉・減衰あり)" #Ivory {
+
+  package "PCグループ (高帯域消費)" {
+    node "<<client PC>>\nノートPC 1 (ビデオ会議中)" as PC1 #LightYellow
+    node "<<client PC>>\nノートPC 2 (大容量DL中)" as PC2 #LightYellow
+    node "<<client PC>>\nデスクトップPC" as PC3 #LightYellow
+  }
+
+  package "スマートフォン（バックグラウンド通信多数）" {
+    node "<<mobile device>>\nスマホ 1" as Phone1 #LightCyan
+    node "<<mobile device>>\nスマホ 2" as Phone2 #LightCyan
+    node "<<mobile device>>\nスマホ 3" as Phone3 #LightCyan
+    node "<<mobile device>>\nスマホ 4" as Phone4 #LightCyan
+    node "<<mobile device>>\nスマホ 5" as Phone5 #LightCyan
+  }
+
+  package "タブレット（動画ストリーミングなど）" {
+    node "<<mobile device>>\nタブレット 1" as Tab1 #LightGray
+    node "<<mobile device>>\nタブレット 2" as Tab2 #LightGray
+  }
+}
+
+' ---- 通信線の記述（不安定な無線接続は赤の点線で表現） ----
+
+Router -[#red,dashed]- PC1 : Wi-Fi (パケットロス)
+Router -[#red,dashed]- PC2 : Wi-Fi (帯域占有)
+Router -[#red,dashed]- PC3 : Wi-Fi
+
+Router -[#red,dashed]- Phone1 : Wi-Fi
+Router -[#red,dashed]- Phone2 : Wi-Fi
+Router -[#red,dashed]- Phone3 : Wi-Fi
+Router -[#red,dashed]- Phone4 : Wi-Fi
+Router -[#red,dashed]- Phone5 : Wi-Fi
+
+Router -[#red,dashed]- Tab1 : Wi-Fi
+Router -[#red,dashed]- Tab2 : Wi-Fi
+
+@enduml
+
+```
+
+### この配置図のポイント
+
+* **ボトルネックの可視化:** 中心にある `Router` を赤色（`#LightPink`）にし、1台に対してPC3台、スマホ5台、タブレット2台の計10台が1つの無線帯域に群がっている「過密状態」を表現しています。
+* **通信線の表現:** 正常なネットワークであれば青の実線などで引きますが、今回は通信環境が不安定というトラブル状況を表現するため、すべての接続線を赤の点線（`-[#red,dashed]-`）にしています。
 
 
 # 合成構造図
