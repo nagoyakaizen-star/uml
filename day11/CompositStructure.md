@@ -106,6 +106,10 @@ PowerSource -[#red,dashed]- ClientPC : AC 100V / バッテリー\n[電源線]
 <img width="564" height="589" alt="image" src="https://github.com/user-attachments/assets/eb0d91de-4b96-40c3-a8c6-7d325adddd8d" />
 
 
+## manifest
+MakefileがCのソース
+Manifestは、ヘッダファイル
+
 
 
 # 合成構造図
