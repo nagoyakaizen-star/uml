@@ -263,6 +263,7 @@ note over Low : [RUNNING]\n低優先度タスクが中断した場所から再�
 @enduml
 
 ```
+<img width="566" height="760" alt="image" src="https://github.com/user-attachments/assets/61baa89f-c5c7-4365-9f98-3500284d63df" />
 
 ---
 
