@@ -271,6 +271,116 @@ component ApplicationServer {
 
 **結論**
 
+# Q6 無償のUMLツールでPapyrus以外にPortに対応したツールはありますか。
+A6
+はい、Papyrus以外にも**無償でComposite Structure DiagramのPortをサポートしているツール**はいくつかあります。ただし、「PortをUMLメタモデルとして正式に扱える」ものと、「図形として描けるだけ」のものを区別する必要があります。
+
+以下に比較表を示します。
+
+| ツール                       | ライセンス   | Composite Structure | UML Port | UMLモデル | おすすめ度 |
+| ------------------------- | ------- | ------------------- | -------- | ------ | ----- |
+| Papyrus                   | OSS     | ◎                   | ◎        | ◎      | ★★★★★ |
+| Visual Paradigm Community | 無償（非商用） | ◎                   | ◎        | ◎      | ★★★★★ |
+| Gaphor                    | OSS     | ○                   | ○        | ◎      | ★★★★☆ |
+| Umbrello                  | OSS     | △                   | △        | ◎      | ★★★☆☆ |
+| Modelio Free              | OSS     | ○                   | ○        | ◎      | ★★★★☆ |
+| PlantUML                  | OSS     | △                   | ×（簡略化）   | ×      | ★★☆☆☆ |
+| diagrams.net(draw.io)     | OSS     | 図形のみ                | 図形のみ     | ×      | ★☆☆☆☆ |
+
+Visual Paradigm Community Editionは、13種類のUML 2.xダイアグラムをサポートしており、Composite Structure Diagramも利用できます。Port、Connector、Delegation Connectorなども扱えるため、無償で利用できるツールとしては非常に完成度が高いです（ただし非商用利用が前提です）。([Visual Paradigm][1])
+
+### 1. Visual Paradigm Community Edition（最もおすすめ）
+
+* 無償（非商用）
+* Windows / Linux / macOS
+* UML 2.x準拠
+* Composite Structure Diagram対応
+* Portを境界線上に配置可能
+* XMI対応
+* SysMLも一部対応
+
+**PapyrusよりUIが使いやすい**という評価も多くあります。([Visual Paradigm][2])
+
+---
+
+### 2. Gaphor
+
+最近急速に進化しているオープンソースUML/SysMLツールです。
+
+* GPLライセンス
+* Python製
+* Composite Structure対応
+* Port対応
+* SysML v2への対応も進行中
+
+MBSE用途でも利用者が増えています。([Reddit][3])
+
+---
+
+### 3. Modelio Free
+
+* Eclipse系ではない独立ツール
+* オープンソース
+* UML 2
+* Composite Structure対応
+* Port対応
+
+企業利用も比較的多いツールです。([UML Tools][4])
+
+---
+
+### 4. Umbrello
+
+KDEプロジェクトのUMLツールです。
+
+* オープンソース
+* UMLモデルを保持
+* Composite Structureのサポートは限定的
+* Portは簡易対応
+
+本格的なMBSEにはやや物足りません。([AlternativeTo][5])
+
+---
+
+## PlantUMLとの比較
+
+PlantUMLは
+
+* Composite Structure Diagram
+* Port
+* Connector
+
+の構文は一部ありますが、
+
+* Portが境界線に配置されない
+* Assembly Connectorがない
+* Delegation Connectorが簡略化
+* UMLメタモデルを持たない
+
+という制約があります。
+
+つまり**PlantUMLは「Composite Structure風の図」を描くツール**であり、**UML Composite Structure Diagramそのものを完全にはサポートしていません**。
+
+---
+
+## あなたの用途（AUTOSAR・OSEK・CAN XLなど）に最も適した選択
+
+これまでのご質問内容から判断すると、AUTOSARコンポーネント、Software Component、Port Interfaceなどを扱うことが多いと思われます。その用途であれば、私のお勧めは次の順です。
+
+1. **Visual Paradigm Community**（無償・非商用、UIが使いやすい）
+2. **Papyrus**（OMG準拠、最も標準に近い）
+3. **Gaphor**（軽量・オープンソース）
+4. **Modelio**（オープンソース、企業利用実績あり）
+
+特に**AUTOSARのPPort/RPortやProvide/Require Interfaceの図を描きたい**のであれば、Visual Paradigm CommunityはPapyrusより扱いやすいと感じる方が多いでしょう。([Visual Paradigm][2])
+
+[1]: https://www.visual-paradigm.com/solution/freeumltool/?utm_source=chatgpt.com "Free UML Tool"
+[2]: https://www.visual-paradigm.com/solution/freeumldesigntool/?utm_source=chatgpt.com "Free UML Design Tool"
+[3]: https://www.reddit.com/r/systems_engineering/comments/1bnw3k5?utm_source=chatgpt.com "Are there any lower affordable versions of MBSE Modelling tools?"
+[4]: https://www.umltools.net/?utm_source=chatgpt.com "Software Architecture & Unified Modeling Language - Free, Open Source and Commercial UML Tools"
+[5]: https://alternativeto.net/software/papyrus-uml/?utm_source=chatgpt.com "Papyrus UML Alternatives: Top 12 UML Modeling Tools & Similar Apps | AlternativeTo"
+
+
 現在のPlantUMLでは**UML標準の「境界線上に配置されるPort（□）」はサポートされていません**。`port`/`portin`/`portout`構文はありますが、レイアウトエンジンの都合により、UML仕様どおりの位置には描画されません。
 
 もし目的が「UML 2 Composite Structure Diagramをできるだけ忠実にPlantUMLで表現すること」であれば、PlantUMLの制約を踏まえたテンプレートをご提案できます。
