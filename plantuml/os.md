@@ -513,3 +513,89 @@ Operating System
 Specification 2.1r1OSEK/"
 [2]: https://www.osek-vdx.org/osekvdx_os.html?utm_source=chatgpt.com "OS"
 
+# Q6 mermaidの書式にしてください。
+A6
+以下は、先ほどの2つのシーケンス図を **Mermaid** の `sequenceDiagram` 書式に変換したものです。
+
+### 1. OSEK状態遷移図（Basic Task State Model）→ シーケンス図
+
+```mermaid
+sequenceDiagram
+    autonumber
+
+    actor Application
+    participant OS
+    participant Scheduler
+    participant TaskA
+
+    Application->>OS: ActivateTask(TaskA)
+    OS->>Scheduler: enqueue(TaskA)
+    Scheduler->>TaskA: dispatch()
+
+    activate TaskA
+    Note over TaskA: Running
+
+    TaskA->>TaskA: execute()
+
+    TaskA->>OS: TerminateTask()
+
+    deactivate TaskA
+
+    OS->>Scheduler: remove(TaskA)
+    Note over TaskA: Suspended
+```
+
+<img width="819" height="630" alt="image" src="https://github.com/user-attachments/assets/668c003a-8b31-4875-8ea2-e439ec36397c" />
+
+---
+
+### 2. OSEKタイミング図（Full Preemptive Scheduling）→ シーケンス図
+
+```mermaid
+sequenceDiagram
+    autonumber
+
+    participant TaskLow
+    participant ISR
+    participant OS
+    participant Scheduler
+    participant TaskHigh
+
+    activate TaskLow
+    TaskLow->>TaskLow: execute()
+
+    Note over ISR: Interrupt occurs
+
+    ISR->>OS: ActivateTask(TaskHigh)
+
+    OS->>Scheduler: schedule()
+
+    Scheduler->>TaskLow: preempt()
+
+    deactivate TaskLow
+
+    Scheduler->>TaskHigh: dispatch()
+
+    activate TaskHigh
+
+    TaskHigh->>TaskHigh: execute()
+
+    TaskHigh->>OS: TerminateTask()
+
+    deactivate TaskHigh
+
+    OS->>Scheduler: TaskHigh terminated
+
+    Scheduler->>TaskLow: resume()
+
+    activate TaskLow
+
+    TaskLow->>TaskLow: continue()
+
+    deactivate TaskLow
+```
+<img width="4236" height="6000" alt="image" src="https://github.com/user-attachments/assets/3f867563-9b31-4c35-bc13-4e04d64609fd" />
+
+MermaidはGitHub、GitLab、Markdown Viewer、Obsidianなどでそのまま表示できます。また、Draw.io（diagrams.net）でも **Arrange → Insert → Advanced → Mermaid** を選択し、このコードを貼り付けることでシーケンス図として取り込めます。
+
+
