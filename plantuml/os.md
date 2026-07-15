@@ -272,3 +272,244 @@ note over Low : [RUNNING]\n低優先度タスクが中断した場所から再�
 * **状態の明示:** OSEKの仕様書で重要となるタスク状態（`SUSPENDED`, `READY`, `RUNNING`, `WAITING`）の変化が視覚的に追えるよう、`note over` を使ってタイムライン上に明記しています。
 * **APIのコール:** 状態遷移やタイミング変化のトリガーとなる `ActivateTask`、`WaitEvent`、`TerminateTask` といった OSEK OS 標準のシステムサービス（API呼び出し）をメッセージラインとして表現しています。
 
+# Q4 Draw IOで、https://www.osek-vdx.org/mirror/os21_rc1.pdf に出てくる状態遷移図、タイミング図からシーケンス図をそれぞれ一つづつ作成してください。
+A4 
+もちろんです。Draw.io（diagrams.net）でそのまま作図できるように、図形の配置と接続を具体的に示します。
+
+OSEK OS 2.1r1では、状態遷移図（Figure 4-3）とタイミング図（Figure 4-6, Figure 4-7）が掲載されています。ここでは、**Figure 4-3（Basic Task State Model）**と**Figure 4-6（Full Preemptive Scheduling）**をもとに、それぞれシーケンス図へ変換した例を示します。([OSEK VDX][1])
+
+---
+
+# 1. 状態遷移図 → シーケンス図
+
+## 元図（Figure 4-3）
+
+```
+Suspended
+     |
+ActivateTask
+     |
+Ready
+     |
+Scheduler
+     |
+Running
+     |
+TerminateTask
+     |
+Suspended
+```
+
+これは状態の遷移を示しています。シーケンス図では、「誰が誰を呼び出すか」に置き換えます。([OSEK VDX][1])
+
+---
+
+## Draw.ioで作るシーケンス図
+
+### ライフライン
+
+```
+Application
+OS
+Scheduler
+TaskA
+```
+
+横一列に並べます。
+
+---
+
+### メッセージ
+
+```
+Application
+      |
+      | ActivateTask(TaskA)
+      V
+OS
+      |
+      | enqueue(TaskA)
+      V
+Scheduler
+      |
+      | dispatch(TaskA)
+      V
+TaskA
+      |
+      | execute()
+      |
+      | TerminateTask()
+      V
+OS
+      |
+      | remove(TaskA)
+      V
+Scheduler
+```
+
+---
+
+### Draw.ioで配置
+
+```
++-----------+ +------+ +-----------+ +-------+
+|Application| |  OS  | |Scheduler | | TaskA |
++-----------+ +------+ +-----------+ +-------+
+     |            |           |          |
+     |----------->|           |          |
+     | ActivateTask()         |          |
+     |            |---------->|          |
+     |            | enqueue() |          |
+     |            |           |--------->|
+     |            |           | dispatch |
+     |            |           |          |
+     |            |           |<=========|
+     |            |           | execute  |
+     |            |<---------------------|
+     |            | TerminateTask()      |
+     |            |---------->|          |
+     |            | remove()  |          |
+```
+
+Draw.ioでは
+
+* UML → Sequence → Lifeline
+* UML → Message
+
+だけで描けます。
+
+---
+
+# 2. タイミング図（Figure 4-6）→ シーケンス図
+
+Figure 4-6は
+
+```
+TaskLow 実行中
+
+ISR発生
+
+TaskHigh起動
+
+TaskHigh終了
+
+TaskLow再開
+```
+
+というプリエンプションを表しています。([OSEK VDX][2])
+
+---
+
+## Draw.ioでのライフライン
+
+```
+ISR
+OS
+Scheduler
+TaskLow
+TaskHigh
+```
+
+---
+
+## メッセージ
+
+```
+TaskLow
+   |
+   | execute()
+   |
+ISR
+   |
+   | ActivateTask(TaskHigh)
+   |
+OS
+   |
+   | schedule()
+   |
+Scheduler
+   |
+   | preempt(TaskLow)
+   |
+TaskLow
+
+Scheduler
+   |
+   | dispatch(TaskHigh)
+   |
+TaskHigh
+   |
+   | execute()
+   |
+   | TerminateTask()
+   |
+OS
+   |
+Scheduler
+   |
+   | resume(TaskLow)
+   |
+TaskLow
+```
+
+---
+
+### Draw.ioイメージ
+
+```
++-----+ +------+ +-----------+ +---------+ +----------+
+| ISR | |  OS  | |Scheduler | | TaskLow | | TaskHigh |
++-----+ +------+ +-----------+ +---------+ +----------+
+                          |             |
+                          |============>| execute
+                          |
+----interrupt------------->
+      ActivateTask()
+          |
+          V
+      schedule()
+          |
+          V
+      preempt()
+          |
+          X------------------------------+
+                                         |
+                              dispatch() |
+                                         V
+                                   TaskHigh
+                                      |
+                                      | execute()
+                                      |
+                                      | TerminateTask()
+                                      |
+                                      V
+                                   Scheduler
+                                      |
+                                      | resume()
+                                      V
+                                   TaskLow
+```
+
+---
+
+# Draw.ioで使う図形
+
+| UMLパレット        | 使用する図形           |
+| -------------- | ---------------- |
+| Lifeline       | ライフライン           |
+| Activation     | アクティベーションバー      |
+| Message        | 同期メッセージ          |
+| Return Message | 戻りメッセージ          |
+| Note           | OSEK API名や状態名の注記 |
+
+---
+
+## AUTOSAR/OSEK向けに改善するなら
+
+OSEKの実装では、スケジューラはOS内部の一部として動作するため、シーケンス図では **OS** と **Scheduler** を別ライフラインに分けるよりも、`OS::Scheduler` のように一つのライフラインとして表現する方が実装に近くなります。また、`ActivateTask()` や `TerminateTask()` のほかに、`Dispatch()`、`Context Switch`、`Save Context`、`Restore Context` を明示すると、AUTOSAR OSやTOPPERS/ATK2の動作との対応も取りやすくなります。これはOSEK仕様書のタイミング図には直接描かれていない内部動作を、設計レベルで補足する表現として有用です。
+
+[1]: https://www.osek-vdx.org/mirror/os21r1.pdf?utm_source=chatgpt.com "OSEK/VDX
+Operating System
+Specification 2.1r1OSEK/"
+[2]: https://www.osek-vdx.org/osekvdx_os.html?utm_source=chatgpt.com "OS"
+
