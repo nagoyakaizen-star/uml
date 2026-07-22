@@ -270,3 +270,117 @@ KMS is "v2: Encrypt & Decrypt\nv1: Deleted"
 
 5. **フェーズ5: 旧キー削除（Delete）（`T500`）**
 * 猶予期間が過ぎた後、**v1** をKMSから完全に消去します。これにより、セキュリティリスク（漏洩リスク）を完全に排除します。
+
+# q2 上記図をweb版のpLANTUMLで表示すると、下記のように文字がかさなってしまいました。解消する方法はありませんか。
+https://github.com/nagoyakaizen-star/uml/Day13/Timing.md at main · nagoyakaizen-star/uml
+A2
+Web版のPlantUMLビューア（PlantUML ServerやSVG描画エンジン）では、Timing図（タイミング図）の `note top of` や長いテキスト注釈の高さ・幅の自動計算が上手く機能せず、**文字やグラフィックが重なって表示される問題**がよく発生します。
+
+この文字化け・重なりを解消するための【推奨修正コード】**と、レイアウトを安定させる**3つのテクニックを紹介します。
+
+---
+
+### 解消済みコード
+
+`\n` による適度な改行と、注釈の向き（`note bottom` への一部変更）、および `scale` 指定を追加して、テキストが重ならないように最適化しました。
+
+```plantuml
+@startuml
+header 暗号化キーローテーションと旧キー廃止のライフサイクル
+title キーローテーション（Key Rotation）& デコンミッション Timing Diagram
+
+' 全体スケールを拡大して間隔を確保
+scale 1.5
+
+' 状態（State）の定義
+robust "Key Version" as KV
+robust "KMS Policy" as KMS
+robust "App: Encryption Target" as AppEnc
+robust "App: Decryption Support" as AppDec
+concise "Data Store (DB/S3)" as DS
+
+@0
+KV is "Key v1 (Active)"
+KMS is "v1: Encrypt & Decrypt"
+AppEnc is "Use v1"
+AppDec is "Support v1"
+DS is "Encrypted with v1"
+
+@100
+note top of KV
+  【T1】キーローテーション実行
+  (新規キー v2 発行)
+end note
+KV is "Key v2 (Active) / v1 (Deprecated)"
+KMS is "v2: Encrypt & Decrypt\nv1: Decrypt Only"
+AppEnc is "Use v2"
+AppDec is "Support v1, v2"
+DS is "Mixed (v1 & v2)"
+
+@200
+note bottom of DS
+  【T2】バックグラウンド再暗号化
+  (v1 -> v2 へ順次更新)
+end note
+DS is "Migrating (v1 -> v2)"
+
+@300
+note bottom of DS
+  【T3】全データの v2 移行完了
+end note
+DS is "Encrypted with v2"
+
+@400
+note top of KMS
+  【T4】旧キー(v1)の無効化
+  (監査・復旧猶予期間)
+end note
+KV is "Key v2 (Active) / v1 (Disabled)"
+KMS is "v2: Encrypt & Decrypt\nv1: Disabled"
+AppDec is "Support v2 (v1 Fails)"
+
+@500
+note top of KMS
+  【T5】旧キー(v1)の完全廃棄
+end note
+KV is "Key v2 (Active) / v1 (Deleted)"
+KMS is "v2: Encrypt & Decrypt\nv1: Deleted"
+
+@enduml
+
+```
+<img width="638" height="726" alt="image" src="https://github.com/user-attachments/assets/a4685cce-690b-4b6f-a25e-67ee14503832" />
+
+---
+
+### 重なりを防ぐ3つのテクニック
+
+#### 1. Note の幅を抑えて「改行 (`\n`)」を意識的に入れる
+
+Webレイアウトエンジンは、1行が長い文字列の横幅計算に失敗しやすいため、以下のように **1行あたり10〜15文字程度で細かく改行する** のが最も効果的です。
+
+* **NG (重なりやすい):**
+`note top of KV : 【T1】キーローテーション実行 (新規キー v2 発行)`
+* **OK (安定する):**
+```plantuml
+note top of KV
+  【T1】キーローテーション実行
+  (新規キー v2 発行)
+end note
+
+```
+
+
+
+#### 2. `top` と `bottom` を分散させる
+
+特定の行（一番上の要素など）に `note top of` が集中すると、上部の余白を突き抜けてタイトルや他のノートと重なります。
+
+* 一番上の要素（`KV` など）には `note top`
+* 一番下の要素（`DS` など）には **`note bottom`**
+
+と指定することで、キャンバスの上下空間を有効活用できます。
+
+#### 3. `scale 1.5` で全体を描画拡張する
+
+コードの先頭付近に `scale 1.5` や `scale 1200 width` などを記載すると、要素同士の余白（パディング）が強制的に広がるため、文字の被りを物理的に防ぐことができます。
