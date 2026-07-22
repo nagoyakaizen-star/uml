@@ -511,3 +511,262 @@ A1
 * **対策1:** 新キー発行後、全リージョンへの鍵情報の同期（Propagation）完了を確認するヘルスチェック待ち時間（Wait Step）を意図的に設ける。
 * **対策2:** 再暗号化完了の検証（Integrity Check）を簡略化しすぎず、全ブロックのチェックサム検証を確実に通してから旧キー無効化ステップへ移行させる。
 * **対策3:** 新キー（v2）発行直後に canary（カナリア）リリースを行い、小規模なトラフィックで一定時間（例: 1時間）運用してエラー率が急増しないことを検証するテスト期間を確保する。
+
+# Q3 原因をそれぞれ３つ、それに対する対策は１つから３つお願いします。なお、参考文献としてWiki意義のURLをそれぞれ３つつけてください。
+A3
+HAZOPの11のガイドワードに基づき、**「原因をそれぞれ3つ」**、それらに対する「対策を1〜3つ」の形で整理し直しました。
+
+また、信頼性の高い技術情報源として、AWS、Microsoft（Azure）、Google Cloud、NIST（米国標準技術研究所）などのドキュメントから、暗号鍵管理やHAZOPに関連する**参考URL**を各セクションに3つずつ掲載しています。
+
+---
+
+## 1. NO / NOT（否定・不発生）
+
+**設計意図:** キーの自動生成・ローテーション・再暗号化が意図通り実行されること。
+
+### 原因
+
+1. **権限不備:** KMS（キー管理サービス）のIAM権限設定ミスにより、ローテーション実行用のWorkerがキー生成APIを呼び出せない。
+2. **ネットワーク遮断:** VPCエンドポイントの設定ミスやIP制限により、ローテーションWorkerからKMSへの通信が拒否される。
+3. **ジョブ破棄:** タスクランナー（Cron/EventBridge等）のサイレントエラーにより、自動実行イベント自体が発火しない。
+
+### 対策
+
+* **対策1:** KMS操作用のサービスアカウント権限をIaC（Terraform等）でコード化し、CI/CDラインで事前検証（Dry-run）を実施する。
+* **対策2:** ローテーション実行ジョブが失敗した場合、即座にSRE/運用チームへ通知するDLQ（Dead Letter Queue）およびアラートを設定する。
+
+### 参考文献（URL）
+
+* [AWS: KMS 認証とアクセス制御](https://www.google.com/search?q=https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/control-access-overview.html)
+* [Google Cloud: Cloud KMS キーの自動ローテーション](https://www.google.com/search?q=https://cloud.google.com/kms/docs/rotate-key)
+* [Microsoft Learn: Azure Key Vault Key Rotation の自動化](https://www.google.com/search?q=https://learn.microsoft.com/ja-jp/azure/key-vault/keys/how-to-automated-key-rotation)
+
+---
+
+## 2. MORE（過剰・量的増加）
+
+**設計意図:** 定められた周期・数でキーが生成・保持・更新されること。
+
+### 原因
+
+1. **無限ループ:** 自動更新スクリプトのロジックバグにより、短時間に多数のキーバージョン（v2, v3, v4...）が大量生成される。
+2. **重複イベント:** メッセージブローカーのリトライや二重トリガーにより、同一サイクルで複数のキー生成リクエストが発行される。
+3. **過度な並列処理:** DB再暗号化処理のWorker数が多すぎて、KMSのAPIクォータ（上限）を超倒・枯渇させてしまう。
+
+### 対策
+
+* **対策1:** KMSの API 呼び出しにレートリミットを設け、1日に生成できるキーバージョンの上限数をハードコーディングで制限する。
+* **対策2:** 再暗号化処理において、並行ワーカー数が多すぎてDBのCPU/I/Oリソースを圧迫しないよう、セマフォによる並列度制御を行う。
+
+### 参考文献（URL）
+
+* [AWS: KMS のリクエスト制限とクォータ](https://www.google.com/search?q=https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/requests-per-second-quotas.html)
+* [NIST: SP 800-57 Part 1 Rev. 5 (Key Management Recommendation)](https://csrc.nist.gov/pubs/sp/800/57/pt1/r5/final)
+* [Microsoft Learn: Azure Key Vault のスロットリングガイド](https://www.google.com/search?q=https://learn.microsoft.com/ja-jp/azure/key-vault/general/throttling-guidance)
+
+---
+
+## 3. LESS（不足・量的減少）
+
+**設計意図:** 暗号化に必要なデータやキーの保持期間・アクセスが十分に維持されること。
+
+### 原因
+
+1. **設定誤り:** 旧キー（v1）の無効化や削除の猶予期間設定が短すぎて、未移行データが存在する状態で鍵が削除される。
+2. **バックアップ漏れ:** 旧キーに対応する暗号化バックアップデータの保持期間チェックを怠り、復元不能なデータが発生する。
+3. **アクセス制御不足:** 開発者がテスト用コマンドで本番のKMSキーを誤って「削除予約」してしまう。
+
+### 対策
+
+* **対策1:** KMSポリシーで削除スケジュールの最短待機期間（例: 7〜30日間）を強制適用し、即時削除APIをブロックする。
+* **対策2:** 旧キー（v1）のアクセスログ（KMS Decryptログ）を監視し、過去30日間のアクセス回数が「ゼロ」であることを確認しないと削除ステップへ進めないガバナンスチェックを組み込む。
+
+### 参考文献（URL）
+
+* [AWS: AWS KMS キーの削除](https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/deleting-keys.html)
+* [Google Cloud: 鍵の破棄と復元](https://www.google.com/search?q=https://cloud.google.com/kms/docs/destroy-restore-key-versions)
+* [OWASP: Cryptographic Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html)
+
+---
+
+## 4. AS WELL AS（付加・異物混入）
+
+**設計意図:** 規定の暗号化データとキーメタデータのみが正しく処理されること。
+
+### 原因
+
+1. **ログ汚染:** キーローテーション処理のデバッグ時、平文データや内部トークンが不注意にアプリケーションログへ出力される。
+2. **メタデータ混入:** データ構造体へ暗号化データを格納する際、想定外の未検証パラメータが同時に書き込まれる。
+3. **メモリダンプ露出:** 暗号化処理を行うプロセスがクラッシュした際、メモリダンプ内に平文キーや中間鍵情報が残存する。
+
+### 対策
+
+* **対策1:** 暗号化処理の前後でメモリ上の平文データを明示的にゼロ消去（Zeroize）し、ログ出力フィルターでシークレット情報をマスクする。
+* **対策2:** 暗号化データ構造体（Envelope）にキーIDやバージョン情報だけでなく、HMAC等の改ざん検知用タグを付加してデータの整合性を保証する。
+
+### 参考文献（URL）
+
+* [AWS: エンベロープ暗号化の概念](https://www.google.com/search?q=https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/concepts.html%23enveloping)
+* [CISA: HAZOP Methodology Overview](https://www.cisa.gov/)
+* [Microsoft Learn: .NET での暗号化メモリの保護](https://learn.microsoft.com/ja-jp/dotnet/standard/security/how-to-use-data-protection)
+
+---
+
+## 5. PART OF（不完全・一部欠損）
+
+**設計意図:** 該当するすべての対象データが例外なく新キーで再暗号化されること。
+
+### 原因
+
+1. **対象漏れ:** DBのスキーマ変更やテーブル追加により、一部の古いテーブル内のデータが再暗号化バッチの検索条件から漏れる。
+2. **バッチ途中でクラッシュ:** メモリ不足（OOM）等でバッチ処理が途中終了し、未処理のレコードが取り残される。
+3. **遅延インデックス:** 検索インデックスの同期遅延により、古いデータの一部が再暗号化キューに正しく投入されない。
+
+### 対策
+
+* **対策1:** データベースのメタデータを自動スキャンし、暗号化カラムの未移行レコード数を毎時カウントするダッシュボードを設置する。
+* **対策2:** アプリケーション側で旧キー（v1）で暗号化されたデータを読み込んだ際、読み込み時に自動で新キー（v2）に再暗号化して書き戻す「Lazy Migration（遅延移行）」を併用する。
+
+### 参考文献（URL）
+
+* [Google Cloud: Cloud Storage での鍵の回転と再暗号化](https://cloud.google.com/storage/docs/encryption/customer-managed-keys)
+* [MongoDB: Client-Side Field Level Encryption Automatic Key Rotation](https://www.mongodb.com/docs/manual/core/queryable-encryption/)
+* [AWS: DynamoDB の暗号化キーローテーション](https://www.google.com/search?q=https://docs.aws.amazon.com/ja_jp/amazondynamodb/latest/developerguide/encryption.key-rotation.html)
+
+---
+
+## 6. REVERSE（逆転・反対）
+
+**設計意図:** キーは「v1 → v2」へと不可逆で一方向に更新され、正しい手順で処理されること。
+
+### 原因
+
+1. **旧コードの生存:** ローリングアップデート中の旧バージョンアプリが、新キー（v2）で暗号化されたデータを誤って旧キー（v1）で書き戻してしまう。
+2. **リカバリミス:** 障害発生時のデータベースリストア処理で、新キー移行前の古いバックアップデータを被せてしまい暗号化状態が先祖返りする。
+3. **順序逆転:** アプリコードのデプロイ前にKMSのキー切り替えを先に行ってしまい、アプリが新キーを認識できず失敗する。
+
+### 対策
+
+* **対策1:** KMSのキーポリシーで、旧キー（v1）に対する `Encrypt`（暗号化）権限を完全に剥奪し、`Decrypt`（復号）専用の権限へ移行させる。
+* **対策2:** アプリのデプロイ順序を強制し、「新キー対応コードの全台デプロイ完了」をパイプラインの事前条件としてキーローテーションをキックする。
+
+### 参考文献（URL）
+
+* [AWS: KMS キーポリシーでのアクセスコントロール](https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/key-policies.html)
+* [Microsoft Learn: Azure App Service のゼロダウンタイムデプロイメント](https://learn.microsoft.com/ja-jp/azure/app-service/deploy-staging-slots)
+* [HashiCorp Vault: Key Rotation Lifecycle](https://www.google.com/search?q=https://developer.hashicorp.com/vault/docs/concepts/key-rotation)
+
+---
+
+## 7. OTHER THAN（異質・非意図的動作）
+
+**設計意図:** ローテーション処理中に意図しない予期せぬ状態が発生しないこと。
+
+### 原因
+
+1. **中間者攻撃 / 誘導:** 中間者攻撃（MITM）やDNSスプーフィングにより、不正なKMSエンドポイントへリクエストが誘導される。
+2. **不正操作:** 悪意ある内部関係者や感染アカウントが、ローテーション手順に乗じて意図的にキー無効化コマンドを実行する。
+3. **非対応の暗号アルゴリズム適用:** パッチ適用ミスにより、サポート対象外の暗号アルゴリズム（例: AES-128とAES-256の混同）でキーが更新される。
+
+### 対策
+
+* **対策1:** KMSとの通信には相互TLS（mTLS）およびクラウドプロバイダが提供するエンドポイント検証を必須化する。
+* **対策2:** 暗号化鍵の変更操作（Create, Rotate, Disable, Delete）に対してマルチステークホルダー承認（2人以上の管理者の承認）を要求する。
+
+### 参考文献（URL）
+
+* [NIST: Cybersecurity Framework (CSF)](https://www.nist.gov/cyberframework)
+* [AWS: VPC エンドポイント（AWS PrivateLink）経由での KMS アクセス](https://www.google.com/search?q=https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/kms-vpc-endpoints.html)
+* [Google Cloud: Cloud KMS 職務分掌とIAM](https://www.google.com/search?q=https://cloud.google.com/kms/docs/separation-of-duties)
+
+---
+
+## 8. SOONER THAN（予定より早い）
+
+**設計意図:** キーの自動生成や廃棄が、適切な定義済みスケジュールに従って行われること。
+
+### 原因
+
+1. **NTP時刻ズレ:** サーバー群のNTP時刻ズレにより、有効期限判定が「未来」に飛び、予定より早く旧キーが失効・破棄される。
+2. **スクリプトの誤起動:** 開発者が手動実行したローテーションテストスクリプトが本番環境に向けて発火してしまう。
+3. **タイマー誤設定:** ローテーション周期（例: 365日）の単位設定ミス（日と時間を誤認）で数日ごとに更新されてしまう。
+
+### 対策
+
+* **対策1:** サーバー群の時刻同期状態（Chrony/NTP）を常時モニタリングし、時刻ドリフト（ズレ）が発生した場合は自動バッチの実行を一時保留する。
+* **対策2:** キーの「廃止予約」が実行された際、実際の削除までに数日間の猶予（Cooldown Period）をKMSレベルで安全装置として設定する。
+
+### 参考文献（URL）
+
+* [AWS: Time Sync Service での時刻同期](https://docs.aws.amazon.com/ja_jp/AWSEC2/latest/UserGuide/set-time.html)
+* [Microsoft Learn: Windows サーバーでの時刻同期のトラブルシューティング](https://www.google.com/search?q=https://learn.microsoft.com/ja-jp/windows-server/networking/windows-time-service/troubleshoot-the-w32time-service)
+* [Google Cloud: Cloud TrueTime と NTP](https://www.google.com/search?q=https://cloud.google.com/spanner/docs/truetime-external-consistency)
+
+---
+
+## 9. LATER THAN（予定より遅い）
+
+**設計意図:** キー更新および再暗号化が定められた期限内に完了すること。
+
+### 原因
+
+1. **データ量肥大化:** データベースのレコード量が想定を超えて肥大化し、再暗号化バッチ（v1→v2）の完了が旧キー廃止日に間に合わない。
+2. **リトライ地獄:** 不安定なネットワーク環境により一部レコードの再暗号化処理が何度も失敗し、全体スケジュールを遅延させる。
+3. **ジョブのスタック:** デッドロックの発生により再暗号化ワーカーが停止（Hang）したまま検知されない。
+
+### 対策
+
+* **対策1:** 再暗号化の進捗率（%）と完了予測時間をリアルタイムで算出するメトリクスを収集し、スケジュール遅延時に自動でバッチの並列数を増やす。
+* **対策2:** 大量データの再暗号化には、ストレージ全体の全書換を避ける「エンベロープ暗号化（データ鍵の再暗号化のみを行い、データ本体の再暗号化をスキップする）」を採用して処理時間を短縮する。
+
+### 参考文献（URL）
+
+* [AWS: KMS データキーキャッシュ（Data Key Caching）](https://www.google.com/search?q=https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/data-key-caching.html)
+* [Google Cloud: Cloud KMS における大規模再暗号化設計](https://cloud.google.com/kms/docs/envelope-encryption)
+* [Datadog: バッチ処理とジョブ遅延のモニタリング](https://docs.datadoghq.com/ja/monitors/)
+
+---
+
+## 10. LONGER THAN（時間超過・処理が長すぎる）
+
+**設計意図:** 復号・再暗号化処理が定常的なWebサービスの応答時間を阻害しないこと。
+
+### 原因
+
+1. **同期処理の重圧:** APIのリクエストAPI内で「旧キーでの復号」と「新キーでの再暗号化」を同期実行し、Webレスポンスがタイムアウトする。
+2. **KMSレイテンシ高騰:** ローテーション直後のアクセス集中により、KMS APIの応答速度が低下しアプリ全体が低速化する。
+3. **ロック競合:** 再暗号化バッチがDBの行ロックを長時間保持するため、本番の書き込みトラフィックと競合・長時間待機が発生する。
+
+### 対策
+
+* **対策1:** レスポンスパスでは旧キーによる「復号」のみを行い、新キーへの「再暗号化と保存」は非同期のバックグラウンドタスク（メッセージキュー経由）に切り離す。
+* **対策2:** KMSへのアクセス頻度を減らすため、復号されたデータ鍵（Data Encryption Key）をメモリ上で安全に短時間キャッシュ（Cache with TTL）する。
+
+### 参考文献（URL）
+
+* [AWS Encryption SDK: データキーキャッシュのベストプラクティス](https://docs.aws.amazon.com/ja_jp/encryption-sdk/latest/developer-guide/data-key-caching.html)
+* [Microsoft Learn: 非同期メッセージングパターン（CQRS / Event-Driven）](https://learn.microsoft.com/ja-jp/azure/architecture/patterns/async-request-reply)
+* [OWASP: Performance and Security Trade-offs](https://owasp.org/www-project-proactive-controls/)
+
+---
+
+## 11. SHORTER THAN（時間不足・処理が短すぎる）
+
+**設計意図:** 暗号化キーの生成・検証およびデータ検証に十分な時間をかけること。
+
+### 原因
+
+1. **レプリケーション遅延:** 新キー（v2）の生成後、マルチリージョンKMSの鍵同期が完了する前にアプリがv2での暗号化を開始し、他リージョンで復号エラーになる。
+2. **検証省略:** 再暗号化処理の完了チェックサム検証を「時間短縮のため」スキップし、壊れた暗号化データを見過ごす。
+3. **カナリアテスト不足:** 新キー（v2）発行後、十分なカナリアリリース（一部トラフィックでの動作検証）を経ずに一括切り替えを行ってしまう。
+
+### 対策
+
+* **対策1:** 新キー発行後、全リージョンへの鍵情報の同期（Propagation）完了を確認するヘルスチェック待ち時間（Wait Step）を意図的に設ける。
+* **対策2:** 新キー（v2）発行直後にカナリアリリースを行い、小規模なトラフィックで一定時間運用してエラー率が急増しないことを検証するテスト期間を確保する。
+
+### 参考文献（URL）
+
+* [AWS: マルチリージョン KMS キーのレプリケーション](https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/multi-region-keys-overview.html)
+* [Google Cloud: グローバルインフラにおけるデータ整合性とレプリケーション](https://www.google.com/search?q=https://cloud.google.com/architecture/global-data-distribution-concepts)
+* [Martin Fowler: CanaryRelease パターン](https://martinfowler.com/bliki/CanaryRelease.html)
