@@ -313,8 +313,8 @@ Eclipse GUI を起動することなく、**Headless（コマンドライン）�
 3. **VS Code / Cloud IDE への柔軟な対応**
 Eclipse GLSP や Xtext などの現代的コンポーネントを採用しているため、従来の重厚な Eclipse Rich Client Platform (RCP) だけでなく、VS Code や Cloudベースの Web IDE（Eclipse Theia）上にも容易に展開可能です。
 
-# Q3 OSEK OSとPOSIX/PSE51の統合、CへのNamespace, Function Templateの導入に基づき、CPにおけるRTEの廃止と、APにおける無駄な仕組みの廃止におるAPとCPの統合を想定してOCL導入による形式手法を含む新しいAUTOSARのメタモデルの提案を作成してください。
-A3 
+# Q4 OSEK OSとPOSIX/PSE51の統合、CへのNamespace, Function Templateの導入に基づき、CPにおけるRTEの廃止と、APにおける無駄な仕組みの廃止におるAPとCPの統合を想定してOCL導入による形式手法を含む新しいAUTOSARのメタモデルの提案を作成してください。
+A4 
 
 ご提示いただいた技術的ビジョン——**① OSEK/PSE51のOS層統合**、**② C言語への言語拡張（Namespace / Function Template）**、**③ OCLによる完全確定性（形式手法）**——は、現行AUTOSAR（CP/AP）が抱える最大の構造的欠陥（過剰なCコード生成、RTEのオーバーヘッド、CP/APの二元化）を根本から解決する極めて本質的なアプローチです。
 
