@@ -486,3 +486,108 @@ namespace ECU1::EngineControl {
 本提案（AUTOSAR-SP）は、**「言語機能のモダン化（CへのNamespace/Template導入）」** と **「モデル理論の進化（OCLによる形式的確定）」** を掛け合わせることで、20年前に車載マイコンの低スペックさを補うために作られた「RTE」や「MemMap.h」、および過剰に重厚化した「APの動的インフラ」を過去のものとします。
 
 **「モデルは OCL で完璧に数学的検証を行い、コードは C言語拡張と LTO で直接結合する」** というこのメタモデル構造こそが、CPとAPを美しく統合する本質解となります。
+
+# Q5 上記提案を実現するために、既存のどのswsを、どう改定する提案を出せばいいでしょうか。
+A5 
+
+既存のAUTOSAR規格（SWS: Software Specification）の枠組みを活用しつつ、本提案（**AUTOSAR-SP: Single Platform**）を標準化提案として通すためには、「全廃・統合するSWS」**と**「全面改定するSWS」を明確に整理し、段階的な変更要求（CR: Change Request）として提出する必要があります。
+
+AUTOSARコンソーシアムのWG（Working Group）構造に則した、具体的に改定・提案すべきSWSのロードマップを示します。
+
+---
+
+### 1. 廃止・統合を提案すべき SWS
+
+RTEの廃止とCP/APの統合に伴い、中間ラッパーや重厚な動的メカニズムを定義している以下のSWSは「廃止（Obsolete）」または「統合」を提案します。
+
+* **`SWS_RTE` (Specification of RTE / CP)**
+* **提案内容:** **規格廃止（Deprecate / Obsolete）**
+* **理由:** C言語拡張（Namespace / Function Template）および LTO（Link-Time Optimization）による直接インライン結合へ移行するため、コード生成層としてのRTE仕様書は不要となります。
+
+
+* **`SWS_CommunicationManagement` (ara::com / AP)**
+* **提案内容:** **`SWS_ServiceOrientedCommunication` へ縮小・統合**
+* **理由:** 同一ECU内の動的IPCやProxy/Skeleton構造、動的Service Discoveryを廃止し、コンパイル時確定の Zero-copy 通信仕様へ一本化します。
+
+
+* **`SWS_CompilerAbstraction` (CP)**
+* **提案内容:** **規格廃止（`MemMap.h` の全廃）**
+* **理由:** `#pragma` による手動メモリマッピングを全廃し、コンパイラ標準属性（`[[gnu::section(...)]]`）と自動生成リンカスクリプトによる配置へ一本化するため。
+
+
+
+---
+
+### 2. 全面改定・新規提案すべき核心 SWS
+
+新規のアーキテクチャをサポートするために、以下のコア仕様書に対して改定案を出します。
+
+#### ① `SWS_OS` (Specification of Operating System)
+
+* **改定点:** **OSEK OS と POSIX (PSE51) の統合（Unified OS Layer）の明記**
+* **具体的な変更提案:**
+* タスクとスレッドの管理構造体として **UTCB (Unified Thread Control Block)** を定義。
+* `GetResource()` (OSEK) と `pthread_mutex_lock(PTHREAD_PRIO_PROTECT)` (POSIX) のバックエンド処理を、単一の **Priority Ceiling Protocol (PCP) エンジン**として統合規定。
+* 動的スレッド生成および動的ヒープ割り当てを禁止し、スタックおよびUTCBの静的割り当て（リンカ配置）を義務付け。
+
+
+
+#### ② `SWS_BSWGeneral` / `SWS_C_LanguageBinding` (新規創設)
+
+* **改定点:** **C言語拡張（Namespace / Function Template）の標準言語仕様採用**
+* **具体的な変更提案:**
+* SWCのスコープ隔離のための `namespace` 命名規則（例: `AUTOSAR::<Domain>::<SWC>`）の規定。
+* ポートデータ型および Zero-copy バッファ操作のための **Function Template API インターフェース書式**の規定。
+* C言語コンパイラに対する必須要求（LTOサポート、コンパイラセクション属性のサポート）の追加。
+
+
+
+#### ③ `SWS_MetaModel` (AUTOSAR M2 Metamodel)
+
+* **改定点:** **UML 2.5 Meta-Class の直接継承と OCL による制約の埋め込み**
+* **具体的な変更提案:**
+* 従来の `PortInterface` 体系を整理し、UML 2.5 の `Interface` / `Port` メタクラスからの静的継承構造へ改訂。
+* メタモデル属性として **OCL (Object Constraint Language) 式**を直接組み込み、静的確定性（モデル不整合ゼロ）の事前検証を標準化ルールとして規定。
+
+
+
+---
+
+### 3. AUTOSAR ワーキンググループ（WG）への標準化提案ロードマップ
+
+提案を推進する際は、関連する主要WGに対して以下のような連携提案（Change Request）を出します。
+
+```
+[Standardization Change Request (CR) パック]
+
+ ┌─ WG-SYS (System Architecture)
+ │   └─> Proposal: CP/AP Unification into "AUTOSAR-SP" & RTE Deprecation
+ │
+ ┌─ WG-OS (Operating System)
+ │   └─> Revision: SWS_OS (OSEK-PSE51 Integration & Static UTCB)
+ │
+ ┌─ WG-MM (Meta-Model)
+ │   └─> Revision: SWS_MetaModel (UML 2.5 Base Metamodel & OCL Integration)
+ │
+ └─ WG-LAN (Language & Tools)
+     └─> New SWS: C Language Extension (Namespace, Template, LTO Guidelines)
+
+```
+
+1. **Phase 1: システム概念の統合提案 (WG-SYS)**
+CPとAPの二元化によるコスト増大を提起し、RTE非依存の「Single Platform Concept」をワーキンググループのトップレベル目標として提出。
+2. **Phase 2: 言語規格とOS統合の改定案提出 (WG-LAN, WG-OS)**
+`MemMap.h` 廃止によるビルド速度・保守性向上データ、および OSEK-PSE51 統合の PCP 実行ベンチマークを添付し、`SWS_OS` の改定および C言語拡張ガイドラインの標準化を要求。
+3. **Phase 3: メタモデルと OCL 検証仕様の改定 (WG-MM)**
+UML 2.5 互換のメタモデル改訂案と、モデルの完全確定性を検証する標準 OCL ルールセットを `SWS_MetaModel` の別冊（Annex）として追加提案。
+
+---
+
+### まとめ
+
+改定提案の最大のレバレッジ（訴求点）は、**「自動車メーカーやTier1にとって、既存のCP/AP二重投資を打ち切り、ツール費用・ビルド時間・実行オーバーヘッドを劇的に削除できる」** というビジネス・開発効率上のインパクトです。
+
+`SWS_RTE` の廃止と `SWS_OS` の OSEK-POSIX 統合を核とし、コンパイラ機能（LTO/Template）を活用する `SWS_C_LanguageBinding` の新設を提案することが、最も実現性の高い改定シナリオとなります。
+
+
+
